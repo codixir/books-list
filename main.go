@@ -41,9 +41,9 @@ func main() {
 	port := os.Getenv("PORT")
 
 	if port == "" {
-		port = ":8000"
+		log.Fatal("$PORT must be set")
 	}
 
 	fmt.Println("Server has strated on port", port)
-	log.Fatal(http.ListenAndServe(port, router))
+	log.Fatal(http.ListenAndServe(":"+port, router))
 }
