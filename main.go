@@ -8,6 +8,7 @@ import (
 	"go-books-list/models"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gorilla/mux"
 	"github.com/subosito/gotenv"
@@ -37,6 +38,12 @@ func main() {
 	router.HandleFunc("/books", controller.UpdateBook(db)).Methods("PUT")
 	router.HandleFunc("/books/{id}", controller.RemoveBook(db)).Methods("DELETE")
 
-	fmt.Println("Server has strated...on port 8000")
-	log.Fatal(http.ListenAndServe(":8000", router))
+	port := os.Getenv("PORT")
+
+	if port == "" {
+		port = ":8000"
+	}
+
+	fmt.Println("Server has strated on port", port)
+	log.Fatal(http.ListenAndServe(port, router))
 }
