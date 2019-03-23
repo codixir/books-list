@@ -1,13 +1,16 @@
 package controllers
 
 import (
-	"books-list/models"
-	"books-list/repository/book"
 	"database/sql"
 	"encoding/json"
+	"go-books-list/models"
+	"go-books-list/repository/book"
+	"go-books-list/utils"
 	"log"
 	"net/http"
 	"strconv"
+
+	"github.com/davecgh/go-spew/spew"
 
 	"github.com/gorilla/mux"
 )
@@ -23,31 +26,54 @@ func logFatal(err error) {
 }
 
 func (c Controller) GetBooks(db *sql.DB) http.HandlerFunc {
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		var book models.Book
+		var error models.Error
+
 		books = []models.Book{}
 		bookRepo := bookRepository.BookRepository{}
+		books, err := bookRepo.GetBooks(db, book, books)
 
-		books = bookRepo.GetBooks(db, book, books)
+		if err != nil {
+			error.Message = "Server error"
+			utils.SendError(w, http.StatusInternalServerError, error)
+			return
+		}
 
-		json.NewEncoder(w).Encode(books)
+		w.Header().Set("Content-Type", "application/json")
+		utils.SendSuccess(w, books)
 	}
 }
 
 func (c Controller) GetBook(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var book models.Book
+		var error models.Error
+
 		params := mux.Vars(r)
 
 		books = []models.Book{}
 		bookRepo := bookRepository.BookRepository{}
 
 		id, err := strconv.Atoi(params["id"])
-		logFatal(err)
 
-		book = bookRepo.GetBook(db, book, id)
+		if err != nil {
+			error.Message = "Incorrect id."
+			utils.SendError(w, http.StatusBadRequest, error)
+			return
+		}
 
-		json.NewEncoder(w).Encode(book)
+		book, err = bookRepo.GetBook(db, book, id)
+
+		if err != nil {
+			error.Message = "Server error."
+			utils.SendError(w, http.StatusInternalServerError, error)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		utils.SendSuccess(w, book)
 	}
 }
 
@@ -55,39 +81,77 @@ func (c Controller) AddBook(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var book models.Book
 		var bookID int
+		var error models.Error
 
 		json.NewDecoder(r.Body).Decode(&book)
 
-		bookRepo := bookRepository.BookRepository{}
-		bookID = bookRepo.AddBook(db, book)
+		if book.Author == "" || book.Title == "" || book.Year == "" {
+			error.Message = "Enter missing fields."
+			utils.SendError(w, http.StatusBadRequest, error)
+			return
+		}
 
-		json.NewEncoder(w).Encode(bookID)
+		bookRepo := bookRepository.BookRepository{}
+		bookID, err := bookRepo.AddBook(db, book)
+
+		if err != nil {
+			error.Message = "Server error"
+			utils.SendError(w, http.StatusInternalServerError, error)
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/plain")
+		utils.SendSuccess(w, bookID)
 	}
 }
 
 func (c Controller) UpdateBook(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var book models.Book
+		var error models.Error
+
 		json.NewDecoder(r.Body).Decode(&book)
 
-		bookRepo := bookRepository.BookRepository{}
-		rowsUpdated := bookRepo.UpdateBook(db, book)
+		if book.Author == "" || book.Title == "" || book.Year == "" {
+			error.Message = "Enter all fields."
+			utils.SendError(w, http.StatusBadRequest, error)
+			return
+		}
 
-		json.NewEncoder(w).Encode(rowsUpdated)
+		bookRepo := bookRepository.BookRepository{}
+		rowsUpdated, err := bookRepo.UpdateBook(db, book)
+
+		spew.Dump(err)
+
+		if err != nil {
+			error.Message = "Server error"
+			utils.SendError(w, http.StatusInternalServerError, error)
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/plain")
+		utils.SendSuccess(w, rowsUpdated)
 	}
 }
 
 func (c Controller) RemoveBook(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var error models.Error
 		params := mux.Vars(r)
 
 		bookRepo := bookRepository.BookRepository{}
 
 		id, err := strconv.Atoi(params["id"])
-		logFatal(err)
 
-		rowsDeleted := bookRepo.RemoveBook(db, id)
+		if err != nil {
+			error.Message = "Incorrect id."
+			utils.SendError(w, http.StatusBadRequest, error)
+			return
+		}
 
-		json.NewEncoder(w).Encode(rowsDeleted)
+		rowsDeleted, err := bookRepo.RemoveBook(db, id)
+
+		w.Header().Set("Content-Type", "text/plain")
+		utils.SendSuccess(w, rowsDeleted)
 	}
 }

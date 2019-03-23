@@ -1,10 +1,11 @@
 package main
 
 import (
-	"books-list/controllers"
-	"books-list/driver"
-	"books-list/models"
 	"database/sql"
+	"fmt"
+	"go-books-list/controllers"
+	"go-books-list/driver"
+	"go-books-list/models"
 	"log"
 	"net/http"
 
@@ -28,7 +29,6 @@ func logFatal(err error) {
 func main() {
 	db = driver.ConnectDB()
 	router := mux.NewRouter()
-
 	controller := controllers.Controller{}
 
 	router.HandleFunc("/books", controller.GetBooks(db)).Methods("GET")
@@ -37,5 +37,6 @@ func main() {
 	router.HandleFunc("/books", controller.UpdateBook(db)).Methods("PUT")
 	router.HandleFunc("/books/{id}", controller.RemoveBook(db)).Methods("DELETE")
 
+	fmt.Println("Server has strated...on port 8000")
 	log.Fatal(http.ListenAndServe(":8000", router))
 }
